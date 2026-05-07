@@ -1,0 +1,58 @@
+name: SRH ticket watcher
+
+on:
+  schedule:
+    # Runs every 5 minutes (GHA cron minimum). The job itself polls 4x with 90s spacing.
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: watcher
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Poll every 90s for ~4.5 minutes
+        env:
+          NTFY_TOPIC: vk18mgrx7
+          STATE_FILE: .state/watcher.state
+        run: |
+          set -u
+          mkdir -p .state
+          for i in 1 2 3 4; do
+            echo "::group::poll $i"
+            python3 check.py || echo "poll $i exited non-zero (non-fatal)"
+            echo "::endgroup::"
+            if [ "$i" -lt 4 ]; then
+              sleep 90
+            fi
+          done
+
+      - name: Persist state if changed
+        run: |
+          if [ -n "$(git status --porcelain .state/ 2>/dev/null)" ]; then
+            git config user.name  "srh-watcher-bot"
+            git config user.email "srh-watcher-bot@users.noreply.github.com"
+            git add .state/
+            git commit -m "chore: update watcher state [skip ci]"
+            # Retry-safe push: rebase on top of any concurrent state commit
+            for attempt in 1 2 3; do
+              if git push; then
+                exit 0
+              fi
+              echo "push failed, attempt $attempt — rebasing and retrying"
+              git pull --rebase
+            done
+            echo "push failed after retries" >&2
+            exit 1
+          else
+            echo "no state change"
+          fi
