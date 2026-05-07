@@ -4,7 +4,29 @@ on:
   schedule:
     # Runs every 5 minutes (GHA cron minimum). The job itself polls 4x with 90s spacing.
     - cron: '*/5 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      page_url:
+        description: Page to poll (leave blank for default SRH team page)
+        required: false
+        default: ''
+      match_anchor:
+        description: Match title to locate in the page (leave blank for SRH vs RCB)
+        required: false
+        default: ''
+      ntfy_topic:
+        description: Override ntfy topic (leave blank to use default vk18mgrx7)
+        required: false
+        default: ''
+      dry_run:
+        description: Dry run (skip actually sending the ntfy push)
+        required: false
+        type: boolean
+        default: false
+      poll_count:
+        description: How many 90s-spaced polls to run in this invocation
+        required: false
+        default: '4'
 
 concurrency:
   group: watcher
@@ -20,23 +42,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Poll every 90s for ~4.5 minutes
+      - name: Poll every 90s
         env:
-          NTFY_TOPIC: vk18mgrx7
+          NTFY_TOPIC: ${{ inputs.ntfy_topic != '' && inputs.ntfy_topic || 'vk18mgrx7' }}
+          PAGE_URL: ${{ inputs.page_url }}
+          MATCH_ANCHOR: ${{ inputs.match_anchor }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          POLL_COUNT: ${{ inputs.poll_count || '4' }}
           STATE_FILE: .state/watcher.state
         run: |
           set -u
           mkdir -p .state
-          for i in 1 2 3 4; do
-            echo "::group::poll $i"
+          count="${POLL_COUNT:-4}"
+          for i in $(seq 1 "$count"); do
+            echo "::group::poll $i/$count"
             python3 check.py || echo "poll $i exited non-zero (non-fatal)"
             echo "::endgroup::"
-            if [ "$i" -lt 4 ]; then
+            if [ "$i" -lt "$count" ]; then
               sleep 90
             fi
           done
 
       - name: Persist state if changed
+        if: ${{ !inputs.dry_run }}
         run: |
           if [ -n "$(git status --porcelain .state/ 2>/dev/null)" ]; then
             git config user.name  "srh-watcher-bot"
