@@ -24,9 +24,13 @@ on:
         type: boolean
         default: false
       poll_count:
-        description: How many 90s-spaced polls to run in this invocation
+        description: How many polls to run in this invocation
         required: false
         default: '4'
+      poll_interval:
+        description: Seconds between polls
+        required: false
+        default: '90'
 
 concurrency:
   group: watcher
@@ -38,28 +42,34 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    # Must be >= poll_count * poll_interval / 60 (plus a minute for checkout/setup).
+    # Default schedule: 4 × 90s = 6 min → 8 min gives headroom. Manual runs with
+    # higher values can bump this via workflow edits if needed.
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
-      - name: Poll every 90s
+      - name: Poll loop
         env:
           NTFY_TOPIC: ${{ inputs.ntfy_topic != '' && inputs.ntfy_topic || 'vk18mgrx7' }}
           PAGE_URL: ${{ inputs.page_url }}
           MATCH_ANCHOR: ${{ inputs.match_anchor }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
           POLL_COUNT: ${{ inputs.poll_count || '4' }}
+          POLL_INTERVAL: ${{ inputs.poll_interval || '90' }}
           STATE_FILE: .state/watcher.state
         run: |
           set -u
           mkdir -p .state
           count="${POLL_COUNT:-4}"
+          interval="${POLL_INTERVAL:-90}"
+          echo "running $count polls at ${interval}s spacing"
           for i in $(seq 1 "$count"); do
             echo "::group::poll $i/$count"
             python3 check.py || echo "poll $i exited non-zero (non-fatal)"
             echo "::endgroup::"
             if [ "$i" -lt "$count" ]; then
-              sleep 90
+              sleep "$interval"
             fi
           done
 
