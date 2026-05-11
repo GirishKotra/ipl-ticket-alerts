@@ -219,7 +219,8 @@ def save_state(state):
 
 def process_page(html, state):
     """Handle the DOM analysis for a single successful fetch. Updates state in place.
-    Does not exit — returns None."""
+    Returns True if tickets are currently live (caller should stop polling),
+    False otherwise."""
     cards = find_match_cards(html)
     log(f"found {len(cards)} actionable match card(s) on page")
 
@@ -235,7 +236,7 @@ def process_page(html, state):
             )
             state["structure_alert_sent"] = True
             save_state(state)
-        return
+        return False
 
     target_cards = [
         (h, t) for (h, t) in cards
@@ -254,7 +255,7 @@ def process_page(html, state):
             )
             state["anchor_alert_sent"] = True
             save_state(state)
-        return
+        return False
 
     # Recovered from prior structure/anchor alert
     changed = False
@@ -295,9 +296,11 @@ def process_page(html, state):
         else:
             log("alert send failed — will retry next run")
     elif any_book_tickets:
-        log("already alerted previously — skipping")
+        log("already alerted previously — skipping alert push")
     else:
         log("still 'Coming soon' — no action")
+
+    return any_book_tickets
 
 
 def main():
@@ -313,13 +316,17 @@ def main():
     first_fail_alerted = False   # has this run sent the "first failure" alert?
     last_error = None            # Exception from most recent poll, or None
     had_any_failure = False      # any poll in this run failed?
+    tickets_live = False         # did we see Book tickets this run?
 
     for i in range(1, POLL_COUNT + 1):
         log(f"--- poll {i}/{POLL_COUNT} ---")
         try:
             html = http_get(PAGE_URL)
             last_error = None
-            process_page(html, state)
+            if process_page(html, state):
+                tickets_live = True
+                log("tickets are live — stopping further polls this run")
+                break
         except (urllib.error.URLError, TimeoutError) as e:
             last_error = e
             had_any_failure = True
@@ -342,7 +349,10 @@ def main():
             time.sleep(POLL_INTERVAL)
 
     # End-of-run reconciliation
-    if last_error is not None:
+    if tickets_live:
+        log("end-of-run: tickets live — disabling workflow (job done)")
+        disable_workflow()
+    elif last_error is not None:
         detail = describe_error(last_error)
         log(f"end-of-run: still failing ({detail}) — pausing watcher")
         send_ntfy(
