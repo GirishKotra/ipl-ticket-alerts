@@ -1,7 +1,7 @@
 # GitHub Actions setup
 
-Runs the watcher every ~90s for free. GHA cron minimum is 5 minutes, so each
-scheduled run polls 4 times at 90s intervals (covers ~4.5 of every 5 minutes).
+Runs the watcher every ~70s for free. GHA cron minimum is 5 minutes, so each
+scheduled run polls 5 times at 70s intervals (covers ~4m40s of every 5 minutes).
 
 ## One-time setup
 

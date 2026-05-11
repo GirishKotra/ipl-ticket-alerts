@@ -27,11 +27,11 @@ on:
       poll_count:
         description: How many polls to run in this invocation
         required: false
-        default: '4'
+        default: '5'
       poll_interval:
         description: Seconds between polls
         required: false
-        default: '90'
+        default: '70'
 
 concurrency:
   group: watcher
@@ -43,9 +43,9 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
-    # Must be >= poll_count * poll_interval / 60 (plus a minute for checkout/setup).
-    # Default schedule: 4 × 90s = 6 min → 8 min gives headroom. Manual runs with
-    # higher values can bump this via workflow edits if needed.
+    # Must be >= (poll_count - 1) * poll_interval / 60 (plus a minute for checkout/setup).
+    # Default schedule: 5 polls × 70s = 4m40s wall time → 8 min gives headroom.
+    # Manual runs with higher values can bump this via workflow edits if needed.
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -56,14 +56,14 @@ jobs:
           PAGE_URL: ${{ inputs.page_url }}
           MATCH_ANCHOR: ${{ inputs.match_anchor }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
-          POLL_COUNT: ${{ inputs.poll_count || '4' }}
-          POLL_INTERVAL: ${{ inputs.poll_interval || '90' }}
+          POLL_COUNT: ${{ inputs.poll_count || '5' }}
+          POLL_INTERVAL: ${{ inputs.poll_interval || '70' }}
           STATE_FILE: .state/watcher.state
         run: |
           set -u
           mkdir -p .state
-          count="${POLL_COUNT:-4}"
-          interval="${POLL_INTERVAL:-90}"
+          count="${POLL_COUNT:-5}"
+          interval="${POLL_INTERVAL:-70}"
           echo "running $count polls at ${interval}s spacing"
           for i in $(seq 1 "$count"); do
             echo "::group::poll $i/$count"
