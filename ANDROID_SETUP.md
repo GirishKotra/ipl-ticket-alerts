@@ -34,7 +34,7 @@ From any terminal (your laptop is fine):
 
 ```bash
 curl -H "Priority: urgent" -H "Tags: rotating_light" \
-     -d "test — srh watcher" ntfy.sh/vk18mgrx7
+     -d "test — ipl ticket watcher" ntfy.sh/vk18mgrx7
 ```
 
 You should get a push within ~2 seconds with a red/siren emoji and an urgent notification sound.

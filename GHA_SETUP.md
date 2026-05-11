@@ -6,21 +6,21 @@ scheduled run polls 4 times at 90s intervals (covers ~4.5 of every 5 minutes).
 ## One-time setup
 
 ```bash
-cd ~/srh-ticket-watcher
+cd ~/ipl-ticket-alerts
 
 git init
 git add .
-git commit -m "initial: SRH ticket watcher"
+git commit -m "initial: IPL ticket watcher"
 
 # Create the repo (requires `gh` CLI + auth). PRIVATE is fine — Actions minutes
 # are 2000/mo free on private, more than enough.
-gh repo create srh-ticket-watcher --private --source=. --push
+gh repo create ipl-ticket-alerts --private --source=. --push
 ```
 
 No prefer `gh` CLI? Create the repo in the GitHub web UI, then:
 
 ```bash
-git remote add origin git@github.com:<you>/srh-ticket-watcher.git
+git remote add origin git@github.com:<you>/ipl-ticket-alerts.git
 git push -u origin main
 ```
 
@@ -51,5 +51,5 @@ push from retriggering the workflow.
 ## Turning it off
 
 - Temporary: Actions tab → workflow → **Disable workflow**.
-- Permanent: `gh repo delete srh-ticket-watcher --yes` or just remove
+- Permanent: `gh repo delete ipl-ticket-alerts --yes` or just remove
   `.github/workflows/watcher.yml` and push.

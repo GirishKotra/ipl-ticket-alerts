@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-Polls the SRH team page on district.in and fires an ntfy alert
-when the 'Sunrisers Hyderabad vs Royal Challengers Bangalore' match
-flips from 'Coming soon' to 'Book tickets'.
+Polls a district.in IPL team page and fires an ntfy alert when a match
+card flips from 'Coming soon' to 'Book tickets'.
 
-Designed to be run on a cron/systemd timer. Exits non-zero on errors
-so cron can surface them.
+Designed to be run on a cron/systemd timer (or GitHub Actions).
+Exits non-zero on errors so the caller can surface them.
 
 Env vars:
-  NTFY_TOPIC   (required)  e.g. srh-tix-watch-xKq92
-  NTFY_SERVER  (optional)  default https://ntfy.sh
-  STATE_FILE   (optional)  default ~/.srh-ticket-watcher.state
+  NTFY_TOPIC    (required)    e.g. vk18mgrx7
+  NTFY_SERVER   (optional)    default https://ntfy.sh
+  PAGE_URL      (optional)    default SRH team page
+  MATCH_ANCHOR  (optional)    title substring to locate the match card;
+                              blank = scan all actionable cards
+  CARD_CLASS    (optional)    district.in card class, default css-ka0bpq
+  DRY_RUN       (optional)    '1' skips the push (for testing)
+  STATE_FILE    (optional)    default ~/.ipl-ticket-alerts.state
 """
 
 import os
@@ -44,7 +48,7 @@ CARD_CLASS = _env("CARD_CLASS", "css-ka0bpq")  # district.in's actionable match 
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC")
 NTFY_SERVER = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
 STATE_FILE = pathlib.Path(
-    os.environ.get("STATE_FILE", pathlib.Path.home() / ".srh-ticket-watcher.state")
+    os.environ.get("STATE_FILE", pathlib.Path.home() / ".ipl-ticket-alerts.state")
 )
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 

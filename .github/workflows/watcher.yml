@@ -1,8 +1,9 @@
-name: SRH ticket watcher
+name: IPL ticket watcher
 
 on:
   schedule:
-    # Runs every 5 minutes (GHA cron minimum). The job itself polls 4x with 90s spacing.
+    # Runs every 5 minutes (GHA cron minimum). The job itself polls N times at
+    # a configurable interval to cover the gap between scheduled invocations.
     - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
@@ -11,7 +12,7 @@ on:
         required: false
         default: ''
       match_anchor:
-        description: Match title to locate in the page (leave blank for SRH vs RCB)
+        description: Match title to locate (leave blank to scan all cards)
         required: false
         default: ''
       ntfy_topic:
@@ -77,8 +78,8 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           if [ -n "$(git status --porcelain .state/ 2>/dev/null)" ]; then
-            git config user.name  "srh-watcher-bot"
-            git config user.email "srh-watcher-bot@users.noreply.github.com"
+            git config user.name  "ipl-ticket-alerts-bot"
+            git config user.email "ipl-ticket-alerts-bot@users.noreply.github.com"
             git add .state/
             git commit -m "chore: update watcher state [skip ci]"
             # Retry-safe push: rebase on top of any concurrent state commit
