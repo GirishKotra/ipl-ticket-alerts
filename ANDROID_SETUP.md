@@ -15,16 +15,28 @@ Direct link: https://play.google.com/store/apps/details?id=io.heckel.ntfy
 
 ---
 
-## 2. Subscribe to the topic
+## 2. Subscribe to the topics
 
-1. Open the ntfy app.
-2. Tap the **`+`** button (bottom-right).
-3. Choose **"Subscribe to topic"**.
-4. Topic name: **`vk18mgrx7`**
-5. Server: leave as **`ntfy.sh`** (the default).
-6. Tap **Subscribe**.
+Subscribe to **two** topics in the ntfy app:
 
-You should now see `vk18mgrx7` in the app's main list.
+**a. Ticket alerts** (loud, DND-breaking)
+
+1. Open the ntfy app → tap **`+`** (bottom-right) → **"Subscribe to topic"**
+2. Topic name: **`vk18mgrx7`**
+3. Server: `ntfy.sh` (default)
+4. Subscribe.
+
+**b. API / infrastructure alerts** (quieter — not DND-breaking)
+
+Same steps but with topic name: **`vk18mgrx7-api-errors`**
+
+This topic receives notifications if district.in starts returning HTTP errors
+or becomes unreachable. The watcher auto-pauses itself if the failures persist,
+so you get a heads-up to investigate (and re-enable the workflow in GitHub's
+Actions UI once district.in is healthy again).
+
+For this second subscription, you probably **don't** want DND override in
+step 4 below — these aren't urgent enough to wake you.
 
 ---
 

@@ -38,7 +38,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write   # to commit state file
+  actions: write    # to disable this workflow when API is consistently failing
 
 jobs:
   watch:
@@ -50,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Poll loop
+      - name: Poll
         env:
           NTFY_TOPIC: ${{ inputs.ntfy_topic != '' && inputs.ntfy_topic || 'vk18mgrx7' }}
           PAGE_URL: ${{ inputs.page_url }}
@@ -59,20 +60,11 @@ jobs:
           POLL_COUNT: ${{ inputs.poll_count || '5' }}
           POLL_INTERVAL: ${{ inputs.poll_interval || '70' }}
           STATE_FILE: .state/watcher.state
+          # GITHUB_TOKEN is exposed implicitly via workflow permissions block above
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -u
           mkdir -p .state
-          count="${POLL_COUNT:-5}"
-          interval="${POLL_INTERVAL:-70}"
-          echo "running $count polls at ${interval}s spacing"
-          for i in $(seq 1 "$count"); do
-            echo "::group::poll $i/$count"
-            python3 check.py || echo "poll $i exited non-zero (non-fatal)"
-            echo "::endgroup::"
-            if [ "$i" -lt "$count" ]; then
-              sleep "$interval"
-            fi
-          done
+          python3 check.py
 
       - name: Persist state if changed
         if: ${{ !inputs.dry_run }}
